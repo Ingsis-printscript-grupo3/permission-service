@@ -1,6 +1,7 @@
 package org.snippetsearcher.permission.permission
 
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
 
@@ -35,6 +36,21 @@ class PermissionService(
             null -> Access.NONE
         }
     }
+
+    fun resources(
+        resourceType: String,
+        userId: String,
+        relation: Relation,
+    ): List<Permission> = repository.findByResourceTypeAndUserIdAndTypeIn(resourceType, userId, relation.types)
+
+    // borrar algo que no existe no es error: si el snippet-service reintenta un borrado, no falla
+    @Transactional
+    fun revokeAll(
+        resourceType: String,
+        resourceId: String,
+    ) {
+        repository.deleteAllOfResource(resourceType, resourceId)
+    }
 }
 
 data class GrantResult(
@@ -47,4 +63,14 @@ enum class Access {
     OWNER,
     READ,
     NONE,
+}
+
+// que recursos se piden en el listado. Se nombran desde el usuario (los mios, los que me
+// compartieron) y no con OWNER/READ, para que el permission-service decida que permiso es cada uno
+enum class Relation(
+    val types: Set<PermissionType>,
+) {
+    OWNED(setOf(PermissionType.OWNER)),
+    SHARED(setOf(PermissionType.READ)),
+    ALL(PermissionType.entries.toSet()),
 }

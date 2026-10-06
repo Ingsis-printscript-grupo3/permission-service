@@ -2,11 +2,13 @@ package org.snippetsearcher.permission.permission
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
@@ -33,6 +35,23 @@ class PermissionController(
         @RequestParam resourceId: String,
         @RequestParam userId: String,
     ): CheckResponse = CheckResponse(service.check(resourceType, resourceId, userId))
+
+    // solo ids y permiso: filtrar, ordenar y paginar lo hace el snippet-service con su propia base
+    @GetMapping("/resources")
+    fun resources(
+        @RequestParam resourceType: String,
+        @RequestParam userId: String,
+        @RequestParam relation: Relation,
+    ): List<ResourceResponse> =
+        service.resources(resourceType, userId, relation).map { ResourceResponse(it.resourceId, it.type) }
+
+    // 204 aunque el recurso no tuviera permisos: lo que importa es que despues no quede ninguno
+    @DeleteMapping
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun revokeAll(
+        @RequestParam resourceType: String,
+        @RequestParam resourceId: String,
+    ) = service.revokeAll(resourceType, resourceId)
 }
 
 data class GrantRequest(
@@ -64,6 +83,11 @@ data class PermissionResponse(
 
 data class CheckResponse(
     val type: Access,
+)
+
+data class ResourceResponse(
+    val resourceId: String,
+    val type: PermissionType,
 )
 
 class InvalidRequestException(

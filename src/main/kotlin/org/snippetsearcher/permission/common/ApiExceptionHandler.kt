@@ -1,6 +1,8 @@
 package org.snippetsearcher.permission.common
 
-import org.snippetsearcher.permission.permission.InvalidRequestException
+import org.slf4j.LoggerFactory
+import org.snippetsearcher.permission.permission.UnknownUserException
+import org.snippetsearcher.permission.user.UserDirectoryUnavailableException
 import org.springframework.http.HttpStatus
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.MissingServletRequestParameterException
@@ -9,9 +11,25 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
-// traduce los errores del pedido a un 400 con un mensaje, en un solo lugar para todos los controllers
+// traduce los errores a un status con un mensaje, en un solo lugar para todos los controllers
 @RestControllerAdvice
 class ApiExceptionHandler {
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    // 422 y no 400: el pedido esta bien armado, pero el usuario no existe. Asi el snippet-service
+    // lo distingue de un error suyo al armar el pedido
+    @ExceptionHandler(UnknownUserException::class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
+    fun unknownUser(e: UnknownUserException): ErrorResponse = ErrorResponse(e.message ?: "El usuario no existe")
+
+    // Auth0 caido o con rate limit: 503 para que quien llama sepa que puede reintentar
+    @ExceptionHandler(UserDirectoryUnavailableException::class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    fun directoryUnavailable(e: UserDirectoryUnavailableException): ErrorResponse {
+        log.warn("No se pudo consultar Auth0", e)
+        return ErrorResponse("No se pudo consultar Auth0, probá de nuevo en un rato")
+    }
+
     @ExceptionHandler(InvalidRequestException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     fun invalidRequest(e: InvalidRequestException): ErrorResponse = ErrorResponse(e.message ?: "Pedido inválido")

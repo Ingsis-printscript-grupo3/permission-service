@@ -1,5 +1,6 @@
 package org.snippetsearcher.permission.permission
 
+import org.snippetsearcher.permission.common.InvalidRequestException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -89,7 +90,3 @@ data class ResourceResponse(
     val resourceId: String,
     val type: PermissionType,
 )
-
-class InvalidRequestException(
-    message: String,
-) : RuntimeException(message)

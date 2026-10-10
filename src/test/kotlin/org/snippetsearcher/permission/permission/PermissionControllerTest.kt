@@ -3,9 +3,12 @@ package org.snippetsearcher.permission.permission
 import org.hamcrest.Matchers.containsInAnyOrder
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.snippetsearcher.permission.support.FakeUserDirectory
+import org.snippetsearcher.permission.support.FakeUserDirectoryConfig
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
@@ -17,13 +20,16 @@ import kotlin.test.assertEquals
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Import(FakeUserDirectoryConfig::class)
 class PermissionControllerTest(
     @Autowired private val mockMvc: MockMvc,
     @Autowired private val repository: PermissionRepository,
+    @Autowired private val users: FakeUserDirectory,
 ) {
     @BeforeEach
     fun limpiarLaBase() {
         repository.deleteAll()
+        users.reset()
     }
 
     @Test
@@ -42,6 +48,40 @@ class PermissionControllerTest(
         grant("""{"resourceType":"snippet","resourceId":"s1","userId":"auth0|beto","type":"READ"}""")
 
         check("snippet", "s1", "auth0|beto").andExpect { jsonPath("$.type") { value("READ") } }
+    }
+
+    @Test
+    fun `compartir con un usuario que no existe en Auth0 es un 422 y no guarda nada`() {
+        grant(permiso("s1", "auth0|nadie", "READ")).andExpect {
+            status { isUnprocessableContent() }
+            jsonPath("$.error") { value("El usuario 'auth0|nadie' no existe") }
+        }
+
+        assertEquals(0, repository.count())
+    }
+
+    @Test
+    fun `si Auth0 no responde al compartir es un 503 y no guarda nada`() {
+        users.available = false
+
+        grant(permiso("s1", "auth0|beto", "READ")).andExpect { status { isServiceUnavailable() } }
+
+        assertEquals(0, repository.count())
+    }
+
+    @Test
+    fun `registrar al owner no le pregunta a Auth0`() {
+        users.available = false
+
+        grant(permiso("s1", "auth0|nuevo", "OWNER")).andExpect { status { isCreated() } }
+    }
+
+    @Test
+    fun `reintentar un compartir que ya existe no le pregunta a Auth0`() {
+        grant(permiso("s1", "auth0|beto", "READ"))
+        users.available = false
+
+        grant(permiso("s1", "auth0|beto", "READ")).andExpect { status { isOk() } }
     }
 
     @Test

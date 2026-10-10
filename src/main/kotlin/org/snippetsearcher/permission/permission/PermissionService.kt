@@ -1,5 +1,6 @@
 package org.snippetsearcher.permission.permission
 
+import org.snippetsearcher.permission.user.UserDirectory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -8,6 +9,7 @@ import java.util.UUID
 @Service
 class PermissionService(
     private val repository: PermissionRepository,
+    private val users: UserDirectory,
 ) {
     // si el usuario ya tenia un permiso sobre el recurso, no se crea otro: se devuelve el que habia.
     // Asi el snippet-service puede reintentar sin miedo a duplicar.
@@ -19,6 +21,9 @@ class PermissionService(
     ): GrantResult {
         val existing = repository.findByResourceTypeAndResourceIdAndUserId(resourceType, resourceId, userId)
         if (existing != null) return GrantResult(existing, created = false)
+
+        // solo se verifica al compartir: el OWNER es siempre quien hace el pedido, y su token ya lo valido
+        if (type == PermissionType.READ && !users.exists(userId)) throw UnknownUserException(userId)
 
         val permission = Permission(UUID.randomUUID(), resourceType, resourceId, userId, type, Instant.now())
         return GrantResult(repository.save(permission), created = true)
@@ -57,6 +62,10 @@ data class GrantResult(
     val permission: Permission,
     val created: Boolean,
 )
+
+class UnknownUserException(
+    userId: String,
+) : RuntimeException("El usuario '$userId' no existe")
 
 // lo que responde el check: ademas de los dos permisos, NONE cuando no tiene ninguno
 enum class Access {

@@ -29,10 +29,16 @@ dependencies {
     // el esquema de la base lo arma Flyway con las migraciones de db/migration, no Hibernate
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
+    // RestClient para hablar con la Management API de Auth0
+    implementation("org.springframework.boot:spring-boot-starter-restclient")
+    // valida el JWT de Auth0 que manda la UI (firma, iss, aud y exp)
+    implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("tools.jackson.module:jackson-module-kotlin")
     runtimeOnly("org.postgresql:postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    // jwt() de MockMvc: los tests arman el token sin hablar con Auth0
+    testImplementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     // los tests usan una base en memoria, asi corren sin levantar Postgres
     testRuntimeOnly("com.h2database:h2")

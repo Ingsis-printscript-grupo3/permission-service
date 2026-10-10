@@ -7,6 +7,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
 // traduce los errores del pedido a un 400 con un mensaje, en un solo lugar para todos los controllers
 @RestControllerAdvice
@@ -25,6 +26,15 @@ class ApiExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     fun missingParameter(e: MissingServletRequestParameterException): ErrorResponse =
         ErrorResponse("Falta el parámetro '${e.parameterName}'")
+
+    // un parametro que no se pudo convertir, como un relation que no es OWNED, SHARED ni ALL
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun invalidParameter(e: MethodArgumentTypeMismatchException): ErrorResponse {
+        val allowed = e.requiredType?.enumConstants?.joinToString(", ")
+        val hint = if (allowed != null) ": tiene que ser uno de $allowed" else ""
+        return ErrorResponse("El parámetro '${e.name}' no es válido$hint")
+    }
 }
 
 data class ErrorResponse(

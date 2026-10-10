@@ -39,8 +39,11 @@ Todos son internos: solo los llama el `snippet-service`, nunca la UI.
 |---|---|---|
 | POST | `/internal/permissions` | Body `{resourceType, resourceId, userId, type}`, con `type` `OWNER` o `READ`. `201` si el permiso es nuevo, `200` si ya existía (no se duplica) |
 | GET | `/internal/permissions/check?resourceType=&resourceId=&userId=` | `{type}`: `OWNER`, `READ` o `NONE` |
+| GET | `/internal/permissions/resources?resourceType=&userId=&relation=` | `[{resourceId, type}]` de los recursos del usuario. `relation`: `OWNED` (es owner), `SHARED` (se lo compartieron) o `ALL` (los dos) |
+| DELETE | `/internal/permissions?resourceType=&resourceId=` | Borra todos los permisos del recurso. `204` siempre, aunque no tuviera ninguno |
 
-Los errores del pedido son `400` con `{error}`.
+Los errores del pedido (parámetro faltante, `relation` o `type` que no existe, body inválido) son
+`400` con `{error}`.
 
 ## Variables de entorno
 

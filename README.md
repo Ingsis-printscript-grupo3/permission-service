@@ -30,3 +30,21 @@ Corre ktlint y los tests. Es lo mismo que corre el CI en cada PR contra `main` o
 docker build -t permission-service .
 docker run -p 8081:8081 permission-service
 ```
+
+## Endpoints
+
+Todos son internos: solo los llama el `snippet-service`, nunca la UI.
+
+| Método | Path | Qué hace |
+|---|---|---|
+| POST | `/internal/permissions` | Body `{resourceType, resourceId, userId, type}`, con `type` `OWNER` o `READ`. `201` si el permiso es nuevo, `200` si ya existía (no se duplica) |
+| GET | `/internal/permissions/check?resourceType=&resourceId=&userId=` | `{type}`: `OWNER`, `READ` o `NONE` |
+
+Los errores del pedido son `400` con `{error}`.
+
+## Variables de entorno
+
+| Variable | Default (para correrlo local) |
+|---|---|
+| `DB_URL` | `jdbc:postgresql://localhost:5433/permissions` |
+| `DB_USER` / `DB_PASSWORD` | `permission` / `permission` |

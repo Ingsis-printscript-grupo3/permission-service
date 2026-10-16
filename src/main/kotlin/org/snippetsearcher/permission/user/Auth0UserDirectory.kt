@@ -18,28 +18,33 @@ class Auth0UserDirectory(
         pageSize: Int,
     ): UserPage {
         val query = searchQuery(text, excludedUserId) ?: return UserPage.EMPTY
-        val response =
-            callAuth0 {
-                client
-                    .get()
-                    .uri { uri ->
-                        uri
-                            .path("/api/v2/users")
-                            .queryParam("q", "{q}")
-                            .queryParam("search_engine", "v3")
-                            .queryParam("page", page)
-                            .queryParam("per_page", pageSize)
-                            .queryParam("include_totals", true)
-                            .queryParam("fields", "user_id,name,email,nickname")
-                            // el query va como variable para que se codifique entero (comillas, |, espacios)
-                            .build(mapOf("q" to query))
-                    }.header("Authorization", "Bearer ${token.value()}")
-                    .retrieve()
-                    .body<Auth0UsersPage>()!!
-            }
+        val response = callAuth0 { fetchUsersPage(query, page, pageSize) }
         return UserPage(response.users.map { it.toUser() }, response.total)
     }
 
+    private fun fetchUsersPage(
+        query: String,
+        page: Int,
+        pageSize: Int,
+    ): Auth0UsersPage =
+        client
+            .get()
+            .uri { uri ->
+                uri
+                    .path("/api/v2/users")
+                    .queryParam("q", "{q}")
+                    .queryParam("search_engine", "v3")
+                    .queryParam("page", page)
+                    .queryParam("per_page", pageSize)
+                    .queryParam("include_totals", true)
+                    .queryParam("fields", "user_id,name,email,nickname")
+                    // el query va como variable para que se codifique entero (comillas, |, espacios)
+                    .build(mapOf("q" to query))
+            }.header("Authorization", "Bearer ${token.value()}")
+            .retrieve()
+            .body<Auth0UsersPage>()!!
+
+    @Suppress("SwallowedException")
     override fun exists(userId: String): Boolean =
         callAuth0 {
             // el token se pide fuera del try: un 404 al pedirlo es un problema de configuracion, no del usuario

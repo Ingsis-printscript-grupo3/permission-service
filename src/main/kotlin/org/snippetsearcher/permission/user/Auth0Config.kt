@@ -7,6 +7,9 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.web.client.RestClient
 import java.time.Duration
 
+private const val CONNECT_TIMEOUT_SECONDS = 2L
+private const val READ_TIMEOUT_SECONDS = 5L
+
 @Configuration
 class Auth0Config {
     @Bean
@@ -19,8 +22,8 @@ class Auth0Config {
         // timeouts cortos: la UI busca mientras se escribe y es mejor un 503 rapido que colgarla
         val timeouts =
             SimpleClientHttpRequestFactory().apply {
-                setConnectTimeout(Duration.ofSeconds(2))
-                setReadTimeout(Duration.ofSeconds(5))
+                setConnectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
+                setReadTimeout(Duration.ofSeconds(READ_TIMEOUT_SECONDS))
             }
         val client =
             builder

@@ -37,7 +37,7 @@ class ApiExceptionHandler {
     // el body no se pudo leer: falta un campo o el type no es OWNER ni READ
     @ExceptionHandler(HttpMessageNotReadableException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    fun unreadableBody(e: HttpMessageNotReadableException): ErrorResponse =
+    fun unreadableBody(): ErrorResponse =
         ErrorResponse("El body no es válido: tiene que traer resourceType, resourceId, userId y type (OWNER o READ)")
 
     @ExceptionHandler(MissingServletRequestParameterException::class)
